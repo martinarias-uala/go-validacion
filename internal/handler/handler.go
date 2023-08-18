@@ -6,7 +6,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/gin-gonic/gin"
-	"github.com/martinarias-uala/go-validacion/internal/shapes"
+	shapes "github.com/martinarias-uala/go-validacion/internal/controller"
 )
 
 type Handler struct {
@@ -18,9 +18,12 @@ var ginLambda *ginadapter.GinLambda
 func (h Handler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	if ginLambda == nil {
 		r := gin.Default()
+
+		//NTH: Group routes & separate in another file routes.go
 		r.GET("/shapes", h.sc.GetShape)
 		r.GET("/shapes/:shapeType", h.sc.GetShapes)
 		r.POST("/shapes", h.sc.CreateShape)
+
 		ginLambda = ginadapter.New(r)
 
 	}

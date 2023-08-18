@@ -14,7 +14,7 @@ zip:build
 
 update:zip
 	cd .build && \
-	aws lambda update-function-code --function-name ${LAMBDA_NAME} --zip-file fileb://main.zip --region us-east-1 --profile $(profile)
+	aws lambda update-function-code --function-name ${LAMBDA_NAME} --zip-file fileb://bootstrap.zip --region us-east-1 --profile $(profile)
 
 deps:dependencies
 	@go mod tidy
