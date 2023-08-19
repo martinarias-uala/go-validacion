@@ -16,7 +16,6 @@ import (
 
 type DynamoClient interface {
 	PutItem(context.Context, *ddb.PutItemInput, ...func(*ddb.Options)) (*ddb.PutItemOutput, error)
-	GetItem(context.Context, *ddb.GetItemInput, ...func(*ddb.Options)) (*ddb.GetItemOutput, error)
 	ExecuteStatement(context.Context, *ddb.ExecuteStatementInput, ...func(*ddb.Options)) (*ddb.ExecuteStatementOutput, error)
 }
 
@@ -62,7 +61,7 @@ func (d *Dynamo) CreateItem(shape models.ShapeData) error {
 }
 func (d *Dynamo) GetShape(shapeType string) ([]models.ShapeData, error) {
 	table := "devShapes"
-
+	shapes := []models.ShapeData{}
 	log.Printf("shapetype :%s", shapeType)
 
 	params, err := attributevalue.MarshalList([]interface{}{shapeType})
@@ -80,22 +79,16 @@ func (d *Dynamo) GetShape(shapeType string) ([]models.ShapeData, error) {
 
 	data, err := d.client.ExecuteStatement(context.TODO(), statement)
 	if err != nil {
-		log.Printf("<middle> <repository> <GetUserLimits> - database connection refused, error: %v\n", err)
+		log.Printf("<middle> <repository> <GetShape> - database connection refused, error: %v\n", err)
 		return nil, err
 	}
 
-	if data.Items == nil {
-		log.Println("<middle> <repository> <GetShapes> - data not found")
-		return nil, nil
-	}
-
-	shape := []models.ShapeData{}
-	err = attributevalue.UnmarshalListOfMaps(data.Items, &shape)
+	err = attributevalue.UnmarshalListOfMaps(data.Items, &shapes)
 
 	if err != nil {
 		log.Printf("<middle> <repository> <GetShapes> - decoding fail, error: %v\n", err)
 		return nil, err
 	}
 
-	return shape, nil
+	return shapes, nil
 }

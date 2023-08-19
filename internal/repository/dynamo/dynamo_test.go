@@ -1,65 +1,117 @@
 package dynamo
 
-/*
-
 import (
 	"context"
 	"errors"
 
 	ddb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/martinarias-uala/go-validacion/pkg/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 )
 
 var _ = Describe("Dynamo Repository", func() {
-	Context("When receive error insert to dynamo", happyPath)
-	Context("When receive error fail on insert", errorPath)
+	Context("Insert shape to dynamo happy path ", happyPath)
+	Context("Insert shape to dynamo error path", errorPath)
 })
 
 func happyPath() {
-	var (
-		item = models.ACTraceItem{
-			Timestamp:   "2023-05-30",
-			Subprocess:  models.ReadSubprocess,
-			State:       models.ErrorState,
-			Description: "some error",
-			LoanId:      "abc-123",
-			TraceId:     "test",
+
+	Context("Should Get shapes Successfully", func() {
+		shape := models.ShapeData{
+			A: 23,
+			B: 5,
+			ShapeMetadata: models.ShapeMetadata{
+				Type:      "TRIANGLE",
+				ID:        "some-id",
+				CreatedBy: "Leo Messi",
+			},
 		}
-		c = MockClient{}
-		d = New()
-	)
+		c := MockDynamoDBClient{}
+		d := New()
 
-	c.On("PutItem", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.PutItemOutput{}, nil)
-	d.client = &c
+		c.On("ExecuteStatement", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.ExecuteStatementOutput{}, nil)
+		d.client = &c
 
-	err := d.CreateItem(item)
-	It("Should not return error", func() {
-		Ω(err).To(BeNil())
+		data, err := d.GetShape(shape.Type)
+		It("Should not return error", func() {
+			Ω(err).To(BeNil())
+		})
+
+		It("Should return an empty array of Shapes", func() {
+			Ω(data).To(Equal([]models.ShapeData{}))
+		})
+	})
+
+	Context("Should Create a shape Successfully", func() {
+		shape := models.ShapeData{
+			A: 23,
+			B: 5,
+			ShapeMetadata: models.ShapeMetadata{
+				Type:      "TRIANGLE",
+				ID:        "some-id",
+				CreatedBy: "Leo Messi",
+			},
+		}
+		c := MockDynamoDBClient{}
+		d := New()
+
+		c.On("PutItem", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.PutItemOutput{}, nil)
+		d.client = &c
+
+		err := d.CreateItem(shape)
+		It("Should not return error", func() {
+			Ω(err).To(BeNil())
+		})
 	})
 }
 
 func errorPath() {
-	var (
-		item = models.ACTraceItem{
-			Timestamp:   "2023-05-30",
-			Subprocess:  models.ReadSubprocess,
-			State:       models.ErrorState,
-			Description: "some error",
-			LoanId:      "abc-123",
-			TraceId:     "test",
+
+	Context("Should fail on Get shapes", func() {
+		shape := models.ShapeData{
+			A: 23,
+			B: 5,
+			ShapeMetadata: models.ShapeMetadata{
+				Type:      "TRIANGLE",
+				ID:        "some-id",
+				CreatedBy: "Leo Messi",
+			},
 		}
-		c = MockClient{}
-		d = New()
-	)
+		c := MockDynamoDBClient{}
+		d := New()
 
-	c.On("PutItem", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.PutItemOutput{}, errors.New("some error"))
-	d.client = &c
+		c.On("ExecuteStatement", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.ExecuteStatementOutput{}, errors.New("some error"))
+		d.client = &c
 
-	err := d.CreateItem(item)
-	It("Should return error", func() {
-		Ω(err).Should(HaveOccurred())
+		_, err := d.GetShape(shape.Type)
+		It("Should return error", func() {
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(ContainSubstring("some error"))
+		})
+	})
+
+	Context("Should fail on Create shape", func() {
+		shape := models.ShapeData{
+			A: 23,
+			B: 5,
+			ShapeMetadata: models.ShapeMetadata{
+				Type:      "TRIANGLE",
+				ID:        "some-id",
+				CreatedBy: "Leo Messi",
+			},
+		}
+		c := MockDynamoDBClient{}
+		d := New()
+
+		c.On("PutItem", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.PutItemOutput{}, errors.New("some error"))
+		d.client = &c
+
+		err := d.CreateItem(shape)
+		It("Should return error", func() {
+			Ω(err).Should(HaveOccurred())
+			Ω(err.Error()).Should(ContainSubstring("some error"))
+		})
 	})
 }
-*/

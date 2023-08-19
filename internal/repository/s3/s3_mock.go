@@ -1,27 +1,18 @@
 package s3
 
-/*
 import (
 	"context"
 
-	"github.com/Uilobank/uilo-loan-portfolio-purchase/commons/models"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/martinarias-uala/go-validacion/pkg/models"
 	"github.com/stretchr/testify/mock"
 )
 
-type MockClient struct {
+type MockS3Client struct {
 	mock.Mock
 }
 
-func (m *MockClient) GetObject(ctx context.Context, inp *s3.GetObjectInput, opt ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
-	args := m.Called(ctx, inp, opt)
-	if args.Get(1) != nil {
-		return nil, args.Get(1).(error)
-	}
-	return args.Get(0).(*s3.GetObjectOutput), nil
-}
-
-func (m *MockClient) PutObject(ctx context.Context, inp *s3.PutObjectInput, opt ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+func (m *MockS3Client) PutObject(ctx context.Context, inp *s3.PutObjectInput, opt ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
 	args := m.Called(ctx, inp, opt)
 	if args.Get(1) != nil {
 		return nil, args.Get(1).(error)
@@ -29,23 +20,14 @@ func (m *MockClient) PutObject(ctx context.Context, inp *s3.PutObjectInput, opt 
 	return args.Get(0).(*s3.PutObjectOutput), nil
 }
 
-type MockRepository struct {
+type MockS3Repository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) GetObjectContent(bucket, key string) (string, models.ACTraceItem) {
-	args := m.Called(bucket, key)
-	if args.Get(1) != nil {
-		return "", args.Get(1).(models.ACTraceItem)
-	}
-	return args.Get(0).(string), models.ACTraceItem{}
-}
-
-func (m *MockRepository) PutObject(bucket, bucket_key string, loan []models.LoanPortfolio) models.ACTraceItem {
-	args := m.Called(bucket, bucket_key, loan)
+func (m *MockS3Repository) PutObject(shape models.ShapeData) error {
+	args := m.Called(shape)
 	if args.Get(0) != nil {
-		return args.Get(0).(models.ACTraceItem)
+		return args.Get(0).(error)
 	}
-	return models.ACTraceItem{}
+	return nil
 }
-*/

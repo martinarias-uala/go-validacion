@@ -1,16 +1,17 @@
 package s3
 
-/*
-
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/martinarias-uala/go-validacion/pkg/models"
+	"github.com/martinarias-uala/go-validacion/pkg/utils"
 )
 
 type S3Client interface {
@@ -18,7 +19,7 @@ type S3Client interface {
 }
 
 type S3R interface {
-	PutObject(string, string, []models.Shape) models.ACTraceItem
+	PutObject(shape models.ShapeData) error
 }
 
 type S3 struct {
@@ -37,25 +38,30 @@ func New() *S3 {
 	}
 }
 
-func (r *S3) PutObject(bucket, bucket_key string, loan []models.Shape) models.ACTraceItem {
+func (r *S3) PutObject(shape models.ShapeData) error {
 
-	content, err := json.Marshal(loan)
+	content, err := json.Marshal(shape)
 	if err != nil {
-		return util.NewACTraceItem("Error on parse object: " + err.Error())
+		return err
 	}
 
+	currentTime := time.Now()
+	formattedDate := currentTime.Format("2006-01-02")
+
+	fileName := fmt.Sprintf("%s-%s-%v", shape.Type, utils.GetAWSReqId(), formattedDate)
+	bucketKey := fmt.Sprintf("SHAPES/%s.txt", fileName)
+
 	input := &s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(bucket_key),
+		Bucket: aws.String("uala-arg-labssupport-dev"),
+		Key:    aws.String(bucketKey),
 		Body:   bytes.NewReader(content),
 	}
 
 	_, err = r.client.PutObject(context.TODO(), input)
 
 	if err != nil {
-		return util.NewACTraceItem("Error on put object: " + err.Error())
+		return err
 	}
 
-	return models.ACTraceItem{}
+	return nil
 }
-*/

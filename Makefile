@@ -16,14 +16,24 @@ update:zip
 	cd .build && \
 	aws lambda update-function-code --function-name ${LAMBDA_NAME} --zip-file fileb://bootstrap.zip --region us-east-1 --profile $(profile)
 
+dependencies:
+	@go get -u github.com/onsi/ginkgo/ginkgo
+	@go get -u github.com/onsi/gomega/...
+
 deps:dependencies
 	@go mod tidy
 
 cover:deps
-	$(HOME)/go/bin/ginkgo -r --progress --failOnPending --trace -coverpkg=./... -coverprofile=coverage.out -outputdir=./test
+	@go test ./... -coverprofile=c.out.tmp -coverpkg=./... && cat c.out.tmp | grep -v "_mock.go" > c.out
 
 report:cover
-	@go tool cover -html=./test/coverage.out -o ./test/coverage.html
+	@go tool cover -func c.out | grep "total"
+
+html-report:cover
+	@go tool cover -html c.out
+
+test:deps
+	@go test ./...
 
 lint-prepare:
 	 brew list golangci-lint || brew install golangci-lint
@@ -39,11 +49,5 @@ clean-cache:
 	@go clean -testcache
 	@go clean -modcache
 
-dependencies:
-	@go get -u github.com/onsi/ginkgo/ginkgo
-	@go get -u github.com/onsi/gomega/...
-
-test:deps
-	@go test ./...
 
 .PHONY: cover

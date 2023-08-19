@@ -1,8 +1,12 @@
 package shapes
 
 import (
+	"log"
+
 	"github.com/gin-gonic/gin"
 	"github.com/martinarias-uala/go-validacion/internal/repository/dynamo"
+	"github.com/martinarias-uala/go-validacion/internal/repository/s3"
+	"github.com/martinarias-uala/go-validacion/pkg/models"
 )
 
 type IShapesController interface {
@@ -12,12 +16,14 @@ type IShapesController interface {
 }
 
 type ShapesController struct {
-	r dynamo.DynamoRepository
+	r   dynamo.DynamoRepository
+	s3r s3.S3R
 }
 
-func New(r dynamo.DynamoRepository) *ShapesController {
+func New(r dynamo.DynamoRepository, s3r s3.S3R) *ShapesController {
 	return &ShapesController{
-		r: r,
+		r:   r,
+		s3r: s3r,
 	}
 }
 
@@ -54,17 +60,50 @@ func (sc *ShapesController) GetShape(c *gin.Context) {
 func (sc *ShapesController) GetShapes(c *gin.Context) {
 	shapeType := c.Param("shapeType")
 
-	/* switch shapeType {
-	case "RECTANGLE":
-		c.JSON(200, models.Rectangle{})
-	case "ELLIPSE":
-		c.JSON(200, models.Ellipse{})
-	case "TRIANGLE":
-		c.JSON(200, models.Triangle{})
-	} */
-
 	shapes, _ := sc.r.GetShape(shapeType)
 
+	for _, v := range shapes {
+		switch v.Type {
+		case "RECTANGLE":
+			shape := models.Rectangle{
+				Length: v.A,
+				Width:  v.B,
+			}
+
+			sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+				ID:        v.ID,
+				CreatedBy: v.CreatedBy,
+				Type:      v.Type,
+				Area:      shape.CalculateArea(),
+			}))
+
+		case "ELLIPSE":
+			shape := models.Ellipse{
+				SemiMajorAxis: v.A,
+				SemiMinorAxis: v.B,
+			}
+			log.Println(v)
+			sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+				ID:        v.ID,
+				CreatedBy: v.CreatedBy,
+				Type:      v.Type,
+				Area:      shape.CalculateArea(),
+			}))
+
+		case "TRIANGLE":
+			shape := models.Triangle{
+				Base:   v.A,
+				Height: v.B,
+			}
+			sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+				ID:        v.ID,
+				CreatedBy: v.CreatedBy,
+				Type:      v.Type,
+				Area:      shape.CalculateArea(),
+			}))
+
+		}
+	}
 	c.JSON(200, shapes)
 
 	/* limit := 10

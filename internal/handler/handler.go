@@ -7,6 +7,7 @@ import (
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/gin-gonic/gin"
 	shapes "github.com/martinarias-uala/go-validacion/internal/controller"
+	"github.com/martinarias-uala/go-validacion/pkg/utils"
 )
 
 type Handler struct {
@@ -19,6 +20,7 @@ func (h Handler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) 
 	if ginLambda == nil {
 		r := gin.Default()
 
+		utils.NewAWSReqId(ctx)
 		//NTH: Group routes & separate in another file routes.go
 		r.GET("/shapes", h.sc.GetShape)
 		r.GET("/shapes/:shapeType", h.sc.GetShapes)
