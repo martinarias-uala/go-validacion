@@ -19,7 +19,7 @@ type S3Client interface {
 }
 
 type S3R interface {
-	PutObject(shape models.ShapeData) error
+	PutObject(shapes []models.ShapeData, shapeType string) error
 }
 
 type S3 struct {
@@ -38,9 +38,9 @@ func New() *S3 {
 	}
 }
 
-func (r *S3) PutObject(shape models.ShapeData) error {
+func (r *S3) PutObject(shapes []models.ShapeData, shapeType string) error {
 
-	content, err := json.Marshal(shape)
+	content, err := json.Marshal(shapes)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (r *S3) PutObject(shape models.ShapeData) error {
 	currentTime := time.Now()
 	formattedDate := currentTime.Format("2006-01-02")
 
-	fileName := fmt.Sprintf("%s-%s-%v", shape.Type, utils.GetAWSReqId(), formattedDate)
+	fileName := fmt.Sprintf("%s-%s-%v", shapeType, utils.GetAWSReqId(), formattedDate)
 	bucketKey := fmt.Sprintf("SHAPES/%s.txt", fileName)
 
 	input := &s3.PutObjectInput{

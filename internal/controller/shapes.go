@@ -46,9 +46,18 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 }
 
 func (sc *ShapesController) GetShapes(c *gin.Context) {
-	shapeType := c.Param("shapeType")
+	var shapesToPut []models.ShapeData
 
-	shapes, _ := sc.r.GetShape(shapeType)
+	shapeType := c.Param("shapeType")
+	shapes, err := sc.r.GetShape(shapeType)
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+
+	}
+
 	for _, v := range shapes {
 		switch v.Type {
 		case "RECTANGLE":
@@ -56,60 +65,46 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 				Length: v.A,
 				Width:  v.B,
 			}
-
-			err := sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+			shapesToPut = append(shapesToPut, shape.ToDynamoItem(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
 				Area:      shape.CalculateArea(),
 			}))
-
-			if err != nil {
-				c.JSON(500, gin.H{
-					"error": err.Error(),
-				})
-				break
-			}
 
 		case "ELLIPSE":
 			shape := models.Ellipse{
 				SemiMajorAxis: v.A,
 				SemiMinorAxis: v.B,
 			}
-			err := sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+			shapesToPut = append(shapesToPut, shape.ToDynamoItem(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
 				Area:      shape.CalculateArea(),
 			}))
-
-			if err != nil {
-				c.JSON(500, gin.H{
-					"error": err.Error(),
-				})
-				break
-			}
 
 		case "TRIANGLE":
 			shape := models.Triangle{
 				Base:   v.A,
 				Height: v.B,
 			}
-			err := sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+			shapesToPut = append(shapesToPut, shape.ToDynamoItem(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
 				Area:      shape.CalculateArea(),
 			}))
 
-			if err != nil {
-				c.JSON(500, gin.H{
-					"error": err.Error(),
-				})
-				break
-			}
-
 		}
+	}
+
+	err = sc.s3r.PutObject(shapesToPut, shapeType)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+
 	}
 	c.JSON(200, shapes)
 

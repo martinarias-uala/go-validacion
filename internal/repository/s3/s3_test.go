@@ -33,7 +33,9 @@ func putObjectPath() {
 		c.On("PutObject", context.TODO(), mock.Anything, mock.Anything, mock.Anything).Return(&s3.PutObjectOutput{}, nil)
 		r.client = &c
 
-		err := r.PutObject(shape)
+		err := r.PutObject([]models.ShapeData{
+			shape,
+		}, shape.Type)
 		It("Should not return error", func() {
 			Ω(err).ToNot(HaveOccurred())
 		})
@@ -54,7 +56,9 @@ func putObjectPath() {
 		c.On("PutObject", context.TODO(), mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("some error"))
 		r := S3{client: &c}
 
-		err := r.PutObject(shape)
+		err := r.PutObject([]models.ShapeData{
+			shape,
+		}, shape.Type)
 		It("Should throw error", func() {
 			Ω(err).ToNot(BeNil())
 		})

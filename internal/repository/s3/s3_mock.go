@@ -24,8 +24,8 @@ type MockS3Repository struct {
 	mock.Mock
 }
 
-func (m *MockS3Repository) PutObject(shape models.ShapeData) error {
-	args := m.Called(shape)
+func (m *MockS3Repository) PutObject(shape []models.ShapeData, shapeType string) error {
+	args := m.Called(shape, shapeType)
 	if args.Get(0) != nil {
 		return args.Get(0).(error)
 	}
