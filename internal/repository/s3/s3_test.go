@@ -28,10 +28,10 @@ func putObjectPath() {
 			},
 		}
 		c := MockS3Client{}
-		out := s3.PutObjectOutput{}
+		r := New()
 
-		c.On("PutObject", context.TODO(), mock.Anything, mock.Anything, mock.Anything).Return(&out, nil)
-		r := S3{client: &c}
+		c.On("PutObject", context.TODO(), mock.Anything, mock.Anything, mock.Anything).Return(&s3.PutObjectOutput{}, nil)
+		r.client = &c
 
 		err := r.PutObject(shape)
 		It("Should not return error", func() {

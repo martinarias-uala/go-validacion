@@ -1,8 +1,6 @@
 package shapes
 
 import (
-	"log"
-
 	"github.com/gin-gonic/gin"
 	"github.com/martinarias-uala/go-validacion/internal/repository/dynamo"
 	"github.com/martinarias-uala/go-validacion/internal/repository/s3"
@@ -10,7 +8,6 @@ import (
 )
 
 type IShapesController interface {
-	GetShape(*gin.Context)
 	GetShapes(*gin.Context)
 	CreateShape(*gin.Context)
 }
@@ -28,32 +25,23 @@ func New(r dynamo.DynamoRepository, s3r s3.S3R) *ShapesController {
 }
 
 func (sc *ShapesController) CreateShape(c *gin.Context) {
-	/*
-		newShape := models.Rectangle{}
-		err := c.BindJSON(&newShape)
+	/* shapeType := c.Param("shapeType")
+	switch shapeType {
+	case "RECTANGLE":
+		c.JSON(200, models.Rectangle{})
+	case "ELLIPSE":
+		c.JSON(200, models.Ellipse{})
+	case "TRIANGLE":
+		c.JSON(200, models.Triangle{})
+	}
+	err := c.BindJSON(&newShape)
 
-		if err != nil {
-			return
-		}
+	if err != nil {
+		return
+	}
 
-		id := utils.GetUUID()
-		newShape. = id
-		c.JSON(http.StatusAccepted, newShape)
-	*/
-}
-
-func (sc *ShapesController) GetShape(c *gin.Context) {
-	/*
-		shapeType := c.Param("shapeType")
-
-		switch shapeType {
-		case "RECTANGLE":
-			c.JSON(200, models.Rectangle{})
-		case "ELLIPSE":
-			c.JSON(200, models.Ellipse{})
-		case "TRIANGLE":
-			c.JSON(200, models.Triangle{})
-		} */
+	id := utils.GetUUID()
+	c.JSON(http.StatusCreated, newShape) */
 
 }
 
@@ -61,7 +49,6 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 	shapeType := c.Param("shapeType")
 
 	shapes, _ := sc.r.GetShape(shapeType)
-
 	for _, v := range shapes {
 		switch v.Type {
 		case "RECTANGLE":
@@ -70,37 +57,57 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 				Width:  v.B,
 			}
 
-			sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+			err := sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
 				Area:      shape.CalculateArea(),
 			}))
+
+			if err != nil {
+				c.JSON(500, gin.H{
+					"error": err.Error(),
+				})
+				break
+			}
 
 		case "ELLIPSE":
 			shape := models.Ellipse{
 				SemiMajorAxis: v.A,
 				SemiMinorAxis: v.B,
 			}
-			log.Println(v)
-			sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+			err := sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
 				Area:      shape.CalculateArea(),
 			}))
 
+			if err != nil {
+				c.JSON(500, gin.H{
+					"error": err.Error(),
+				})
+				break
+			}
+
 		case "TRIANGLE":
 			shape := models.Triangle{
 				Base:   v.A,
 				Height: v.B,
 			}
-			sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
+			err := sc.s3r.PutObject(shape.ToDynamoItem(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
 				Area:      shape.CalculateArea(),
 			}))
+
+			if err != nil {
+				c.JSON(500, gin.H{
+					"error": err.Error(),
+				})
+				break
+			}
 
 		}
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/martinarias-uala/go-validacion/pkg/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/stretchr/testify/mock"
 )
 
 var _ = Describe("Shapes Controller", func() {
@@ -29,11 +28,22 @@ func getShapesPath() {
 				},
 			},
 		}
+		shapeToPut := models.Triangle{
+			Base:   23,
+			Height: 5,
+		}
+
 		dynamoMock := &dynamo.MockDynamoDBRepository{}
 		s3Mock := &s3.MockS3Repository{}
 
-		dynamoMock.On("GetShape", mock.Anything).Return(expectedShapes, nil)
-		s3Mock.On("PutObject", mock.Anything).Return(nil)
+		dynamoMock.On("GetShape", "TRIANGLE").Return(expectedShapes, nil)
+
+		s3Mock.On("PutObject", shapeToPut.ToDynamoItem(models.ShapeMetadata{
+			Type:      "TRIANGLE",
+			ID:        "some-id",
+			CreatedBy: "Leo Messi",
+			Area:      shapeToPut.CalculateArea(),
+		})).Return(nil)
 
 		sc := New(dynamoMock, s3Mock)
 

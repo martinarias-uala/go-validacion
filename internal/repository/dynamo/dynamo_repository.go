@@ -74,7 +74,6 @@ func (d *Dynamo) GetShape(shapeType string) ([]models.ShapeData, error) {
 			fmt.Sprintf("SELECT * FROM \"%v\" WHERE tipo=?",
 				table)),
 		Parameters: params,
-		Limit:      aws.Int32(10),
 	}
 
 	data, err := d.client.ExecuteStatement(context.TODO(), statement)

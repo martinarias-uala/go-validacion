@@ -22,7 +22,6 @@ func (h Handler) Handle(ctx context.Context, req events.APIGatewayProxyRequest) 
 
 		utils.NewAWSReqId(ctx)
 		//NTH: Group routes & separate in another file routes.go
-		r.GET("/shapes", h.sc.GetShape)
 		r.GET("/shapes/:shapeType", h.sc.GetShapes)
 		r.POST("/shapes", h.sc.CreateShape)
 

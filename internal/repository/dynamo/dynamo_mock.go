@@ -37,7 +37,7 @@ func (m *MockDynamoDBRepository) GetShape(shapeType string) ([]models.ShapeData,
 	if args.Get(1) != nil {
 		return nil, args.Get(1).(error)
 	}
-	return []models.ShapeData{}, nil
+	return args.Get(0).([]models.ShapeData), nil
 }
 
 func (m *MockDynamoDBRepository) CreateItem(shape models.ShapeData) error {
