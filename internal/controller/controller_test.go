@@ -38,7 +38,7 @@ func getShapesPath() {
 
 		dynamoMock.On("GetShape", "TRIANGLE").Return(expectedShapes, nil)
 
-		s3Mock.On("PutObject", shapeToPut.ToDynamoItem(models.ShapeMetadata{
+		s3Mock.On("PutObject", shapeToPut.ToGenericShape(models.ShapeMetadata{
 			Type:      "TRIANGLE",
 			ID:        "some-id",
 			CreatedBy: "Leo Messi",

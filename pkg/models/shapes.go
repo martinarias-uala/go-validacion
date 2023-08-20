@@ -20,7 +20,7 @@ type ShapeData struct {
 
 type IShape interface {
 	CalculateArea() float64
-	ToDynamoItem(data ShapeMetadata) ShapeData
+	ToGenericShape(data ShapeMetadata) ShapeData
 }
 
 type Rectangle struct {
@@ -45,7 +45,7 @@ func (r Rectangle) CalculateArea() float64 {
 	return r.Length * r.Width
 }
 
-func (r Rectangle) ToDynamoItem(data ShapeMetadata) ShapeData {
+func (r Rectangle) ToGenericShape(data ShapeMetadata) ShapeData {
 	return ShapeData{
 		A:             r.Width,
 		B:             r.Length,
@@ -57,7 +57,7 @@ func (e Ellipse) CalculateArea() float64 {
 	return math.Pi * e.SemiMajorAxis * e.SemiMinorAxis
 }
 
-func (e Ellipse) ToDynamoItem(data ShapeMetadata) ShapeData {
+func (e Ellipse) ToGenericShape(data ShapeMetadata) ShapeData {
 	return ShapeData{
 		A:             e.SemiMajorAxis,
 		B:             e.SemiMinorAxis,
@@ -69,7 +69,7 @@ func (t Triangle) CalculateArea() float64 {
 	return 0.5 * t.Base * t.Height
 }
 
-func (t Triangle) ToDynamoItem(data ShapeMetadata) ShapeData {
+func (t Triangle) ToGenericShape(data ShapeMetadata) ShapeData {
 	return ShapeData{
 		A:             t.Base,
 		B:             t.Height,

@@ -61,51 +61,53 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 	for _, v := range shapes {
 		switch v.Type {
 		case "RECTANGLE":
-			shape := models.Rectangle{
+			rectangle := models.Rectangle{
 				Length: v.A,
 				Width:  v.B,
 			}
-			shapesToPut = append(shapesToPut, shape.ToDynamoItem(models.ShapeMetadata{
+			shapesToPut = append(shapesToPut, rectangle.ToGenericShape(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
-				Area:      shape.CalculateArea(),
+				Area:      rectangle.CalculateArea(),
 			}))
 
 		case "ELLIPSE":
-			shape := models.Ellipse{
+			ellipse := models.Ellipse{
 				SemiMajorAxis: v.A,
 				SemiMinorAxis: v.B,
 			}
-			shapesToPut = append(shapesToPut, shape.ToDynamoItem(models.ShapeMetadata{
+			shapesToPut = append(shapesToPut, ellipse.ToGenericShape(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
-				Area:      shape.CalculateArea(),
+				Area:      ellipse.CalculateArea(),
 			}))
 
 		case "TRIANGLE":
-			shape := models.Triangle{
+			triangle := models.Triangle{
 				Base:   v.A,
 				Height: v.B,
 			}
-			shapesToPut = append(shapesToPut, shape.ToDynamoItem(models.ShapeMetadata{
+			shapesToPut = append(shapesToPut, triangle.ToGenericShape(models.ShapeMetadata{
 				ID:        v.ID,
 				CreatedBy: v.CreatedBy,
 				Type:      v.Type,
-				Area:      shape.CalculateArea(),
+				Area:      triangle.CalculateArea(),
 			}))
 
 		}
 	}
 
 	err = sc.s3r.PutObject(shapesToPut, shapeType)
+
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
 
 	}
+
 	c.JSON(200, shapes)
 
 	/* limit := 10
