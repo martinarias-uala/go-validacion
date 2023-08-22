@@ -34,7 +34,7 @@ func happyPath() {
 		c.On("ExecuteStatement", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.ExecuteStatementOutput{}, nil)
 		d.client = &c
 
-		data, err := d.GetShape(shape.Type)
+		data, err := d.GetShape(shape.Type, "")
 		It("Should not return error", func() {
 			Ω(err).To(BeNil())
 		})
@@ -85,7 +85,7 @@ func errorPath() {
 		c.On("ExecuteStatement", context.TODO(), mock.Anything, mock.Anything).Return(&ddb.ExecuteStatementOutput{}, errors.New("some error"))
 		d.client = &c
 
-		_, err := d.GetShape(shape.Type)
+		_, err := d.GetShape(shape.Type, "")
 		It("Should return error", func() {
 			Ω(err).Should(HaveOccurred())
 			Ω(err.Error()).Should(ContainSubstring("some error"))

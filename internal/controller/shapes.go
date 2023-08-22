@@ -1,10 +1,18 @@
 package shapes
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"sync"
+
 	"github.com/gin-gonic/gin"
 	"github.com/martinarias-uala/go-validacion/internal/repository/dynamo"
 	"github.com/martinarias-uala/go-validacion/internal/repository/s3"
 	"github.com/martinarias-uala/go-validacion/pkg/models"
+	"github.com/martinarias-uala/go-validacion/pkg/utils"
 )
 
 type IShapesController interface {
@@ -25,31 +33,91 @@ func New(r dynamo.DynamoRepository, s3r s3.S3R) *ShapesController {
 }
 
 func (sc *ShapesController) CreateShape(c *gin.Context) {
-	/* shapeType := c.Param("shapeType")
-	switch shapeType {
-	case "RECTANGLE":
-		c.JSON(200, models.Rectangle{})
-	case "ELLIPSE":
-		c.JSON(200, models.Ellipse{})
-	case "TRIANGLE":
-		c.JSON(200, models.Triangle{})
+	var responseData models.ResponseData
+
+	shapeType := c.Param("shapeType")
+	id := c.Query("id")
+	aStr := c.Query("a")
+	bStr := c.Query("b")
+
+	a, err := strconv.ParseFloat(aStr, 64)
+	if err != nil {
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+		}
 	}
-	err := c.BindJSON(&newShape)
+
+	b, err := strconv.ParseFloat(bStr, 64)
+	if err != nil {
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+		}
+	}
+
+	requestUrl := fmt.Sprintf("https://reqres.in/api/users/%s", id)
+	response, err := http.Get(requestUrl)
 
 	if err != nil {
-		return
+		if err != nil {
+			c.JSON(response.StatusCode, gin.H{
+				"error": err.Error(),
+			})
+		}
+	}
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+		}
 	}
 
-	id := utils.GetUUID()
-	c.JSON(http.StatusCreated, newShape) */
+	err = json.Unmarshal(body, &responseData)
+	if err != nil {
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+		}
+	}
 
+	fmt.Println("Email:", responseData.Data.Email)
+	fmt.Println("Side a:", a)
+	fmt.Println("Side b:", b)
+
+	err = sc.r.CreateItem(models.ShapeData{
+		A: a,
+		B: b,
+		ShapeMetadata: models.ShapeMetadata{
+			ID:        utils.GetUUID(),
+			Type:      shapeType,
+			CreatedBy: responseData.Data.Email,
+		},
+	})
+	if err != nil {
+		if err != nil {
+			c.JSON(500, gin.H{
+				"error": err.Error(),
+			})
+		}
+	}
+	c.JSON(http.StatusCreated, nil)
 }
 
 func (sc *ShapesController) GetShapes(c *gin.Context) {
 	var shapesToPut []models.ShapeData
 
 	shapeType := c.Param("shapeType")
-	shapes, err := sc.r.GetShape(shapeType)
+	nextToken := c.Query("page")
+
+	shapesResponse, err := sc.r.GetShape(shapeType, nextToken)
 
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -58,45 +126,66 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 
 	}
 
+	shapes := shapesResponse.ShapesData
+	pageToken := shapesResponse.PageToken
+
+	var wg sync.WaitGroup
+	shapesCh := make(chan models.ShapeData)
+
 	for _, v := range shapes {
-		switch v.Type {
-		case "RECTANGLE":
-			rectangle := models.Rectangle{
-				Length: v.A,
-				Width:  v.B,
-			}
-			shapesToPut = append(shapesToPut, rectangle.ToGenericShape(models.ShapeMetadata{
-				ID:        v.ID,
-				CreatedBy: v.CreatedBy,
-				Type:      v.Type,
-				Area:      rectangle.CalculateArea(),
-			}))
+		wg.Add(1)
+		go func(shapeData models.ShapeData) {
+			defer wg.Done()
 
-		case "ELLIPSE":
-			ellipse := models.Ellipse{
-				SemiMajorAxis: v.A,
-				SemiMinorAxis: v.B,
-			}
-			shapesToPut = append(shapesToPut, ellipse.ToGenericShape(models.ShapeMetadata{
-				ID:        v.ID,
-				CreatedBy: v.CreatedBy,
-				Type:      v.Type,
-				Area:      ellipse.CalculateArea(),
-			}))
+			var shape models.ShapeData
+			switch shapeData.Type {
+			case "RECTANGLE":
+				rectangle := models.Rectangle{
+					Length: shapeData.A,
+					Width:  shapeData.B,
+				}
+				shape = rectangle.ToGenericShape(models.ShapeMetadata{
+					ID:        shapeData.ID,
+					CreatedBy: shapeData.CreatedBy,
+					Type:      shapeData.Type,
+				})
+				shape.Area = rectangle.CalculateArea()
 
-		case "TRIANGLE":
-			triangle := models.Triangle{
-				Base:   v.A,
-				Height: v.B,
-			}
-			shapesToPut = append(shapesToPut, triangle.ToGenericShape(models.ShapeMetadata{
-				ID:        v.ID,
-				CreatedBy: v.CreatedBy,
-				Type:      v.Type,
-				Area:      triangle.CalculateArea(),
-			}))
+			case "ELLIPSE":
+				ellipse := models.Ellipse{
+					SemiMajorAxis: shapeData.A,
+					SemiMinorAxis: shapeData.B,
+				}
+				shape = ellipse.ToGenericShape(models.ShapeMetadata{
+					ID:        shapeData.ID,
+					CreatedBy: shapeData.CreatedBy,
+					Type:      shapeData.Type,
+				})
+				shape.Area = ellipse.CalculateArea()
 
-		}
+			case "TRIANGLE":
+				triangle := models.Triangle{
+					Base:   shapeData.A,
+					Height: shapeData.B,
+				}
+				shape = triangle.ToGenericShape(models.ShapeMetadata{
+					ID:        shapeData.ID,
+					CreatedBy: shapeData.CreatedBy,
+					Type:      shapeData.Type,
+				})
+				shape.Area = triangle.CalculateArea()
+			}
+			shapesCh <- shape
+		}(v)
+	}
+
+	go func() {
+		wg.Wait()
+		close(shapesCh)
+	}()
+
+	for shapeData := range shapesCh {
+		shapesToPut = append(shapesToPut, shapeData)
 	}
 
 	err = sc.s3r.PutObject(shapesToPut, shapeType)
@@ -108,21 +197,8 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 
 	}
 
-	c.JSON(200, shapes)
-
-	/* limit := 10
-	if c.Query("limit") != "" {
-		newLimit, err := strconv.Atoi(c.Query("limit"))
-		if err != nil {
-			limit = 10
-		} else {
-			limit = newLimit
-		}
-	}
-	if limit > 50 {
-		limit = 50
-	}
-	shapes := make([]models.Shape, limit)
-
-	c.JSON(200, shapes) */
+	c.JSON(200, gin.H{
+		"data":       shapesToPut,
+		"page_token": pageToken,
+	})
 }

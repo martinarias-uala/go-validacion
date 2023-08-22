@@ -76,3 +76,8 @@ func (t Triangle) ToGenericShape(data ShapeMetadata) ShapeData {
 		ShapeMetadata: data,
 	}
 }
+
+type GetShapesResponse struct {
+	ShapesData []ShapeData
+	PageToken  *string
+}

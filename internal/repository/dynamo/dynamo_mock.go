@@ -32,12 +32,12 @@ type MockDynamoDBRepository struct {
 	mock.Mock
 }
 
-func (m *MockDynamoDBRepository) GetShape(shapeType string) ([]models.ShapeData, error) {
-	args := m.Called(shapeType)
+func (m *MockDynamoDBRepository) GetShape(shapeType, nextToken string) (models.GetShapesResponse, error) {
+	args := m.Called(shapeType, nextToken)
 	if args.Get(1) != nil {
-		return nil, args.Get(1).(error)
+		return models.GetShapesResponse{}, args.Get(1).(error)
 	}
-	return args.Get(0).([]models.ShapeData), nil
+	return args.Get(0).(models.GetShapesResponse), nil
 }
 
 func (m *MockDynamoDBRepository) CreateItem(shape models.ShapeData) error {

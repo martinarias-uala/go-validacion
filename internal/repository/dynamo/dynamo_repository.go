@@ -21,7 +21,7 @@ type DynamoClient interface {
 
 type DynamoRepository interface {
 	CreateItem(shape models.ShapeData) error
-	GetShape(shapeType string) ([]models.ShapeData, error)
+	GetShape(shapeType, nextToken string) (models.GetShapesResponse, error) //GET A BETTER NAME FOR THIS STRUCT
 }
 
 type Dynamo struct {
@@ -46,10 +46,10 @@ func (d *Dynamo) CreateItem(shape models.ShapeData) error {
 	_, err := d.client.PutItem(context.TODO(), &ddb.PutItemInput{
 		TableName: aws.String(table),
 		Item: map[string]types.AttributeValue{
-			"id":   &types.AttributeValueMemberS{Value: shape.ID},
-			"tipo": &types.AttributeValueMemberS{Value: shape.Type},
-			/* "a":       &types.AttributeValueMemberS{Value: shape.A},
-			"b":       &types.AttributeValueMemberS{Value: shape.B}, */
+			"id":      &types.AttributeValueMemberS{Value: shape.ID},
+			"tipo":    &types.AttributeValueMemberS{Value: shape.Type},
+			"a":       &types.AttributeValueMemberN{Value: fmt.Sprintf("%f", shape.A)},
+			"b":       &types.AttributeValueMemberN{Value: fmt.Sprintf("%f", shape.B)},
 			"creador": &types.AttributeValueMemberS{Value: shape.CreatedBy},
 		},
 	})
@@ -59,7 +59,7 @@ func (d *Dynamo) CreateItem(shape models.ShapeData) error {
 
 	return nil
 }
-func (d *Dynamo) GetShape(shapeType string) ([]models.ShapeData, error) {
+func (d *Dynamo) GetShape(shapeType string, nextToken string) (models.GetShapesResponse, error) {
 	table := "devShapes"
 	shapes := []models.ShapeData{}
 	log.Printf("shapetype :%s", shapeType)
@@ -67,27 +67,36 @@ func (d *Dynamo) GetShape(shapeType string) ([]models.ShapeData, error) {
 	params, err := attributevalue.MarshalList([]interface{}{shapeType})
 	if err != nil {
 		log.Printf("<middle> <repository> <GetShape> -  Error marshaling params: %s\n", err.Error())
-		return nil, err
+		return models.GetShapesResponse{}, err
 	}
 	statement := &dynamodb.ExecuteStatementInput{
 		Statement: aws.String(
 			fmt.Sprintf("SELECT * FROM \"%v\" WHERE tipo=?",
 				table)),
 		Parameters: params,
+		Limit:      aws.Int32(17),
+	}
+
+	if len(nextToken) > 1 {
+		statement.NextToken = &nextToken
 	}
 
 	data, err := d.client.ExecuteStatement(context.TODO(), statement)
 	if err != nil {
 		log.Printf("<middle> <repository> <GetShape> - database connection refused, error: %v\n", err)
-		return nil, err
+		return models.GetShapesResponse{}, err
 	}
 
 	err = attributevalue.UnmarshalListOfMaps(data.Items, &shapes)
 
 	if err != nil {
 		log.Printf("<middle> <repository> <GetShapes> - decoding fail, error: %v\n", err)
-		return nil, err
+		return models.GetShapesResponse{}, err
 	}
 
-	return shapes, nil
+	return models.GetShapesResponse{
+		ShapesData: shapes,
+		PageToken:  data.NextToken,
+	}, nil
+
 }
