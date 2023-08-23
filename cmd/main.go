@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+
 	s3 := s3.New()
 	d := dynamo.New()
 	sc := shapes.New(d, s3, &http.Client{})

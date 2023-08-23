@@ -30,7 +30,9 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rs/zerolog v1.30.0 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 )
 

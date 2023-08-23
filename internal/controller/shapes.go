@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/martinarias-uala/go-validacion/internal/logs"
 	"github.com/martinarias-uala/go-validacion/internal/repository/dynamo"
 	"github.com/martinarias-uala/go-validacion/internal/repository/s3"
 	"github.com/martinarias-uala/go-validacion/pkg/models"
@@ -37,6 +38,9 @@ func New(r dynamo.DynamoRepository, s3r s3.S3R, h service.HTTPClient) *ShapesCon
 
 func (sc *ShapesController) CreateShape(c *gin.Context) {
 	var responseData models.ResponseData
+	logger := logs.GetLoggerInstance()
+
+	logger.Info().Msg("<CreateShape> Starting to insert item in DynamoDB")
 
 	shapeType := c.Param("shapeType")
 	id := c.Query("id")
@@ -45,6 +49,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 
 	a, err := strconv.ParseFloat(aStr, 64)
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error parsing A param: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
@@ -53,6 +58,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 
 	b, err := strconv.ParseFloat(bStr, 64)
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error parsing B param: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
@@ -63,6 +69,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	response, err := sc.h.Get(requestUrl)
 
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error getting user data: %s", err.Error()))
 		c.JSON(response.StatusCode, gin.H{
 			"error": err.Error(),
 		})
@@ -74,6 +81,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	body, err := io.ReadAll(response.Body)
 
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error reading user data: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
@@ -83,6 +91,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	err = json.Unmarshal(body, &responseData)
 
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error unmarshaling user data: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
@@ -99,24 +108,29 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 		},
 	})
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error creating item: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
 		return
 	}
-
+	logger.Info().Msg("<CreateShape> Item created successfully")
 	c.JSON(http.StatusCreated, nil)
 }
 
 func (sc *ShapesController) GetShapes(c *gin.Context) {
 	var shapesToPut []models.ShapeData
+	logger := logs.GetLoggerInstance()
 
 	shapeType := c.Param("shapeType")
 	nextToken := c.Query("page")
 
+	logger.Info().Msg("<GetShapes> Starting to retrieve items")
+
 	shapesResponse, err := sc.r.GetShape(shapeType, nextToken)
 
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<GetShapes> Error retrieving items: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
@@ -133,6 +147,7 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 		wg.Add(1)
 		go func(shapeData models.ShapeData) {
 			defer wg.Done()
+			logger.Info().Msg(fmt.Sprintf("<GetShapes> Calculating area for shape: %v", shapeData))
 
 			var shape models.ShapeData
 			switch shapeData.Type {
@@ -172,6 +187,7 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 				})
 				shape.Area = triangle.CalculateArea()
 			}
+			logger.Info().Msg(fmt.Sprintf("<GetShapes> Shape stored in channel: %v", shape))
 			shapesCh <- shape
 		}(v)
 	}
@@ -185,15 +201,18 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 		shapesToPut = append(shapesToPut, shapeData)
 	}
 
+	logger.Info().Msg("<GetShapes> Starting to put items in S3 bucket")
 	err = sc.s3r.PutObject(shapesToPut, shapeType)
 
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<GetShapes> Error putting items in S3 bucket: %s", err.Error()))
 		c.JSON(500, gin.H{
 			"error": err.Error(),
 		})
 
 	}
 
+	logger.Info().Msg("<GetShapes> Items retrieved successfully")
 	c.JSON(200, gin.H{
 		"data":       shapesToPut,
 		"page_token": pageToken,

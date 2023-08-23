@@ -184,6 +184,7 @@ func getShapesPath() {
 	})
 }
 func createShapePath() {
+
 	Context("Should create item successfully", func() {
 
 		stringReader := strings.NewReader(`{"data":{"email":"some-email@email.com"}}`)

@@ -3,7 +3,6 @@ package dynamo
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/martinarias-uala/go-validacion/internal/logs"
 	"github.com/martinarias-uala/go-validacion/pkg/models"
 )
 
@@ -41,7 +41,10 @@ func New() *Dynamo {
 }
 
 func (d *Dynamo) CreateItem(shape models.ShapeData) error {
+	logger := logs.GetLoggerInstance()
 	table := "devShapes"
+
+	logger.Info().Msg("<CreateItem> Starting to create item in DynamoDB")
 
 	_, err := d.client.PutItem(context.TODO(), &ddb.PutItemInput{
 		TableName: aws.String(table),
@@ -54,19 +57,23 @@ func (d *Dynamo) CreateItem(shape models.ShapeData) error {
 		},
 	})
 	if err != nil {
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error creating item: %s", err.Error()))
 		return err
 	}
+	logger.Info().Msg("<CreateItem> Item created successfully")
 
 	return nil
 }
 func (d *Dynamo) GetShape(shapeType string, nextToken string) (models.GetShapesResponse, error) {
 	table := "devShapes"
 	shapes := []models.ShapeData{}
-	log.Printf("shapetype :%s", shapeType)
+	logger := logs.GetLoggerInstance()
+
+	logger.Info().Msg("<GetShape> Starting to get items from DynamoDB")
 
 	params, err := attributevalue.MarshalList([]interface{}{shapeType})
 	if err != nil {
-		log.Printf("<middle> <repository> <GetShape> -  Error marshaling params: %s\n", err.Error())
+		logger.Error().Msg(fmt.Sprintf("<GetShape> Error marshaling params: %s", err.Error()))
 		return models.GetShapesResponse{}, err
 	}
 	statement := &dynamodb.ExecuteStatementInput{
@@ -83,17 +90,18 @@ func (d *Dynamo) GetShape(shapeType string, nextToken string) (models.GetShapesR
 
 	data, err := d.client.ExecuteStatement(context.TODO(), statement)
 	if err != nil {
-		log.Printf("<middle> <repository> <GetShape> - database connection refused, error: %v\n", err)
+		logger.Error().Msg(fmt.Sprintf("<GetShape> Error database connection refused: %s", err.Error()))
 		return models.GetShapesResponse{}, err
 	}
 
 	err = attributevalue.UnmarshalListOfMaps(data.Items, &shapes)
 
 	if err != nil {
-		log.Printf("<middle> <repository> <GetShapes> - decoding fail, error: %v\n", err)
+		logger.Error().Msg(fmt.Sprintf("<GetShape> Error decoding db response failed: %s", err.Error()))
 		return models.GetShapesResponse{}, err
 	}
 
+	logger.Info().Msg("<GetShape> Items retrieved successfully from DynamoDB")
 	return models.GetShapesResponse{
 		ShapesData: shapes,
 		PageToken:  data.NextToken,
