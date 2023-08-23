@@ -14,7 +14,7 @@ var (
 
 func InitializeLogger() {
 	once.Do(func() {
-		logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
+		logger = zerolog.New(os.Stderr).With().Timestamp().Caller().Logger()
 	})
 }
 
