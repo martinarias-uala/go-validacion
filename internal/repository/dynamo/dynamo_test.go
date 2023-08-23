@@ -39,8 +39,11 @@ func happyPath() {
 			Ω(err).To(BeNil())
 		})
 
-		It("Should return an empty array of Shapes", func() {
-			Ω(data).To(Equal([]models.ShapeData{}))
+		It("Should return an empty GetShapesResponse Struct", func() {
+			Ω(data).To(Equal(models.GetShapesResponse{
+				ShapesData: []models.ShapeData{},
+				PageToken:  nil,
+			}))
 		})
 	})
 

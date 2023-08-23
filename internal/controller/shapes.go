@@ -12,6 +12,7 @@ import (
 	"github.com/martinarias-uala/go-validacion/internal/repository/dynamo"
 	"github.com/martinarias-uala/go-validacion/internal/repository/s3"
 	"github.com/martinarias-uala/go-validacion/pkg/models"
+	"github.com/martinarias-uala/go-validacion/pkg/service"
 	"github.com/martinarias-uala/go-validacion/pkg/utils"
 )
 
@@ -23,12 +24,14 @@ type IShapesController interface {
 type ShapesController struct {
 	r   dynamo.DynamoRepository
 	s3r s3.S3R
+	h   service.HTTPClient
 }
 
-func New(r dynamo.DynamoRepository, s3r s3.S3R) *ShapesController {
+func New(r dynamo.DynamoRepository, s3r s3.S3R, h service.HTTPClient) *ShapesController {
 	return &ShapesController{
 		r:   r,
 		s3r: s3r,
+		h:   h,
 	}
 }
 
@@ -42,55 +45,49 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 
 	a, err := strconv.ParseFloat(aStr, 64)
 	if err != nil {
-		if err != nil {
-			c.JSON(500, gin.H{
-				"error": err.Error(),
-			})
-		}
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
 	b, err := strconv.ParseFloat(bStr, 64)
 	if err != nil {
-		if err != nil {
-			c.JSON(500, gin.H{
-				"error": err.Error(),
-			})
-		}
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
 	requestUrl := fmt.Sprintf("https://reqres.in/api/users/%s", id)
-	response, err := http.Get(requestUrl)
+	response, err := sc.h.Get(requestUrl)
 
 	if err != nil {
-		if err != nil {
-			c.JSON(response.StatusCode, gin.H{
-				"error": err.Error(),
-			})
-		}
+		c.JSON(response.StatusCode, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
+
 	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
+
 	if err != nil {
-		if err != nil {
-			c.JSON(500, gin.H{
-				"error": err.Error(),
-			})
-		}
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
 	err = json.Unmarshal(body, &responseData)
-	if err != nil {
-		if err != nil {
-			c.JSON(500, gin.H{
-				"error": err.Error(),
-			})
-		}
-	}
 
-	fmt.Println("Email:", responseData.Data.Email)
-	fmt.Println("Side a:", a)
-	fmt.Println("Side b:", b)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	err = sc.r.CreateItem(models.ShapeData{
 		A: a,
@@ -102,12 +99,12 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 		},
 	})
 	if err != nil {
-		if err != nil {
-			c.JSON(500, gin.H{
-				"error": err.Error(),
-			})
-		}
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
+
 	c.JSON(http.StatusCreated, nil)
 }
 

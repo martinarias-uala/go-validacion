@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/aws/aws-lambda-go/lambda"
 	shapes "github.com/martinarias-uala/go-validacion/internal/controller"
 	"github.com/martinarias-uala/go-validacion/internal/handler"
@@ -11,7 +13,7 @@ import (
 func main() {
 	s3 := s3.New()
 	d := dynamo.New()
-	sc := shapes.New(d, s3)
+	sc := shapes.New(d, s3, &http.Client{})
 	h := handler.New(sc)
 
 	lambda.Start(h.Handle)
