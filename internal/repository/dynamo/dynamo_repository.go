@@ -21,7 +21,7 @@ type DynamoClient interface {
 
 type DynamoRepository interface {
 	CreateItem(shape models.ShapeData) error
-	GetShape(shapeType, nextToken string) (models.GetShapesResponse, error) //GET A BETTER NAME FOR THIS STRUCT
+	GetShape(shapeType, nextToken string) (models.GetShapesResponse, error)
 }
 
 type Dynamo struct {
@@ -58,7 +58,7 @@ func (d *Dynamo) CreateItem(shape models.ShapeData) error {
 	})
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error creating item: %s", err.Error()))
-		return err
+		return models.UnexpectedError(err.Error())
 	}
 	logger.Info().Msg("<CreateItem> Item created successfully")
 
@@ -74,7 +74,7 @@ func (d *Dynamo) GetShape(shapeType string, nextToken string) (models.GetShapesR
 	params, err := attributevalue.MarshalList([]interface{}{shapeType})
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<GetShape> Error marshaling params: %s", err.Error()))
-		return models.GetShapesResponse{}, err
+		return models.GetShapesResponse{}, models.InvalidInput(err.Error())
 	}
 	statement := &dynamodb.ExecuteStatementInput{
 		Statement: aws.String(
@@ -91,14 +91,14 @@ func (d *Dynamo) GetShape(shapeType string, nextToken string) (models.GetShapesR
 	data, err := d.client.ExecuteStatement(context.TODO(), statement)
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<GetShape> Error database connection refused: %s", err.Error()))
-		return models.GetShapesResponse{}, err
+		return models.GetShapesResponse{}, models.BadServerInitialization(err.Error())
 	}
 
 	err = attributevalue.UnmarshalListOfMaps(data.Items, &shapes)
 
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<GetShape> Error decoding db response failed: %s", err.Error()))
-		return models.GetShapesResponse{}, err
+		return models.GetShapesResponse{}, models.UnexpectedError(err.Error())
 	}
 
 	logger.Info().Msg("<GetShape> Items retrieved successfully from DynamoDB")

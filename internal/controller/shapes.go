@@ -47,11 +47,20 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	aStr := c.Query("a")
 	bStr := c.Query("b")
 
+	if aStr == "" || bStr == "" {
+		err := models.InvalidInput("Missing query string params")
+		logger.Error().Msg(fmt.Sprintf("<CreateItem> Missing params: %s", err.Error()))
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
 	a, err := strconv.ParseFloat(aStr, 64)
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error parsing A param: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.InvalidInput(err.Error()),
 		})
 		return
 	}
@@ -60,7 +69,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error parsing B param: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.InvalidInput(err.Error()),
 		})
 		return
 	}
@@ -71,7 +80,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error getting user data: %s", err.Error()))
 		c.JSON(response.StatusCode, gin.H{
-			"error": err.Error(),
+			"error": models.UnexpectedError(err.Error()),
 		})
 		return
 	}
@@ -83,7 +92,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error reading user data: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.UnexpectedError(err.Error()),
 		})
 		return
 	}
@@ -93,7 +102,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error unmarshaling user data: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.UnexpectedError(err.Error()),
 		})
 		return
 	}
@@ -110,7 +119,7 @@ func (sc *ShapesController) CreateShape(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<CreateItem> Error creating item: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.UnexpectedError(err.Error()),
 		})
 		return
 	}
@@ -132,7 +141,7 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<GetShapes> Error retrieving items: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.UnexpectedError(err.Error()),
 		})
 
 	}
@@ -207,7 +216,7 @@ func (sc *ShapesController) GetShapes(c *gin.Context) {
 	if err != nil {
 		logger.Error().Msg(fmt.Sprintf("<GetShapes> Error putting items in S3 bucket: %s", err.Error()))
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error": models.UnexpectedError(err.Error()),
 		})
 
 	}
